@@ -35,6 +35,11 @@ type Config struct {
 	Proxies                  []string
 	BrowserReuseLimit        int
 	PageReuseLimit           int
+
+	// VerifyTLS makes the fetchers verify the server's TLS certificate (chain to the
+	// system roots, host name, dates). The default is false, which keeps upstream's
+	// behaviour. See WithVerifyTLS.
+	VerifyTLS bool
 }
 
 func (o *Config) validate() error {
@@ -136,6 +141,18 @@ func WithJS(opts ...func(*jsOptions)) func(*Config) error {
 		}
 
 		return o.validate()
+	}
+}
+
+// WithVerifyTLS turns server certificate verification on or off for the fetchers
+// (the stealth HTTP client and the Chromium fetcher). The default is off, as in
+// upstream. When on, a certificate that does not verify ends the fetch with a
+// *scrapemate.TLSVerifyError (stealth) or a Chromium certificate error (browser).
+func WithVerifyTLS(verify bool) func(*Config) error {
+	return func(o *Config) error {
+		o.VerifyTLS = verify
+
+		return nil
 	}
 }
 

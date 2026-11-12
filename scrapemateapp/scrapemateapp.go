@@ -146,6 +146,17 @@ func (app *ScrapemateApp) getCacher() (scrapemate.Cacher, error) {
 	return cacher, err
 }
 
+// stealthOptions returns the options of the stealth fetcher that come from cfg.
+func stealthOptions(cfg *Config) []stealth.Option {
+	var opts []stealth.Option
+
+	if cfg.VerifyTLS {
+		opts = append(opts, stealth.WithVerifyTLS(nil))
+	}
+
+	return opts
+}
+
 func (app *ScrapemateApp) getFetcher() (scrapemate.HTTPFetcher, error) {
 	var (
 		httpFetcher scrapemate.HTTPFetcher
@@ -170,6 +181,7 @@ func (app *ScrapemateApp) getFetcher() (scrapemate.HTTPFetcher, error) {
 			httpFetcher = stealth.New(
 				app.cfg.StealthBrowser,
 				rotator,
+				stealthOptions(app.cfg)...,
 			)
 		} else {
 			cookieJar, err := cookiejar.New(nil)

@@ -4,6 +4,7 @@ go 1.27.3
 
 require (
 	github.com/Noooste/azuretls-client v1.12.12
+	github.com/Noooste/utls v1.3.21
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/gosom/kit v0.0.0-20230309082109-543b32ac686a
@@ -39,7 +40,6 @@ require (
 	github.com/Noooste/fhttp v1.0.15 // indirect
 	github.com/Noooste/go-socks4 v0.0.2 // indirect
 	github.com/Noooste/uquic-go v1.0.5 // indirect
-	github.com/Noooste/utls v1.3.21 // indirect
 	github.com/Noooste/websocket v1.0.3 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.1 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect

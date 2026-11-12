@@ -3,6 +3,7 @@ package stealth
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"net/http"
 	"sync"
 
@@ -18,10 +19,18 @@ type proxyFetcher interface {
 type stealthFetch struct {
 	browserSettings settings
 	rotator         proxyFetcher
+
+	// verify and roots come from WithVerifyTLS; the zero values are upstream's behaviour.
+	verify bool
+	roots  *x509.CertPool
 }
 
-func New(browser string, rotator proxyFetcher) scrapemate.HTTPFetcher {
+func New(browser string, rotator proxyFetcher, opts ...Option) scrapemate.HTTPFetcher {
 	ans := stealthFetch{}
+
+	for _, opt := range opts {
+		opt(&ans)
+	}
 
 	if browser != "" {
 		ans.browserSettings = newSettings(browser)
@@ -63,6 +72,8 @@ func (o *stealthFetch) Fetch(ctx context.Context, job scrapemate.IJob) scrapemat
 		}
 	}
 
+	verdict := o.configureVerify(session)
+
 	session.Browser = o.browserSettings.browser
 	session.OrderedHeaders = o.browserSettings.headers
 
@@ -79,6 +90,11 @@ func (o *stealthFetch) Fetch(ctx context.Context, job scrapemate.IJob) scrapemat
 	resp, err := session.Do(&req)
 	if err != nil {
 		ans.Error = err
+
+		// azuretls flattens handshake errors to strings; the verifier kept the typed one
+		if te := verdict.failure(); te != nil {
+			ans.Error = te
+		}
 
 		return ans
 	}
