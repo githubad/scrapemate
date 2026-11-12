@@ -101,10 +101,11 @@ type playwrightRuntimeFactory struct {
 	disableImages bool
 	proxyPool     *ProxyPool
 	ua            string
+	verifyTLS     bool
 }
 
 func (f *playwrightRuntimeFactory) create(context.Context) (slotRuntime, error) {
-	b, err := newBrowser(f.pw, f.headless, f.disableImages, f.proxyPool, f.ua)
+	b, err := newBrowser(f.pw, f.headless, f.disableImages, f.proxyPool, f.ua, f.verifyTLS)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +117,7 @@ func (f *playwrightRuntimeFactory) create(context.Context) (slotRuntime, error) 
 		disableImages: f.disableImages,
 		proxyPool:     f.proxyPool,
 		ua:            f.ua,
+		verifyTLS:     f.verifyTLS,
 	}, nil
 }
 
@@ -126,6 +128,7 @@ type playwrightRuntime struct {
 	disableImages bool
 	proxyPool     *ProxyPool
 	ua            string
+	verifyTLS     bool
 }
 
 func (r *playwrightRuntime) pageCount() int {
@@ -194,7 +197,7 @@ func (r *playwrightRuntime) recreateContext() error {
 func (r *playwrightRuntime) recreateBrowser() error {
 	r.browser.Close()
 
-	b, err := newBrowser(r.pw, r.headless, r.disableImages, r.proxyPool, r.ua)
+	b, err := newBrowser(r.pw, r.headless, r.disableImages, r.proxyPool, r.ua, r.verifyTLS)
 	if err != nil {
 		return err
 	}

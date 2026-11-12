@@ -3,6 +3,7 @@ package jshttp
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/mxschmitt/playwright-go"
@@ -48,6 +49,11 @@ type JSFetcherOptions struct {
 	PageReuseLimit     int
 	BrowserReuseLimit  int
 	UserAgent          string
+
+	// VerifyTLS keeps Chromium's certificate checks: the launch arguments
+	// --ignore-certificate-errors and --ignore-certificate-errors-spki-list are not
+	// passed. The default (false) is upstream's behaviour.
+	VerifyTLS bool
 }
 
 func New(params JSFetcherOptions) (scrapemate.HTTPFetcher, error) {
@@ -107,6 +113,7 @@ func New(params JSFetcherOptions) (scrapemate.HTTPFetcher, error) {
 				disableImages: params.DisableImages,
 				proxyPool:     pool,
 				ua:            params.UserAgent,
+				verifyTLS:     params.VerifyTLS,
 			},
 		})
 		if err != nil {
@@ -126,6 +133,7 @@ func New(params JSFetcherOptions) (scrapemate.HTTPFetcher, error) {
 		disableImages: params.DisableImages,
 		proxyPool:     pool,
 		ua:            params.UserAgent,
+		verifyTLS:     params.VerifyTLS,
 	}
 	ans.factory = sessionFactory
 
@@ -289,36 +297,53 @@ func (o *browser) Close() {
 	_ = o.browser.Close()
 }
 
-func newBrowser(pw *playwright.Playwright, headless, disableImages bool, proxyPool *ProxyPool, ua string) (*browser, error) {
+// chromiumArgs returns the Chromium launch arguments. With verifyTLS false the list
+// is upstream's. With verifyTLS true the two certificate switches
+// (--ignore-certificate-errors and --ignore-certificate-errors-spki-list) are left
+// out, so Chromium checks certificates; nothing else changes.
+func chromiumArgs(disableImages, verifyTLS bool) []string {
+	args := []string{
+		`--start-maximized`,
+		`--no-default-browser-check`,
+		`--disable-dev-shm-usage`,
+		`--no-sandbox`,
+		`--disable-setuid-sandbox`,
+		`--no-zygote`,
+		`--disable-gpu`,
+		`--mute-audio`,
+		`--disable-extensions`,
+		`--single-process`,
+		`--disable-breakpad`,
+		`--disable-features=TranslateUI,BlinkGenPropertyTrees`,
+		`--disable-ipc-flooding-protection`,
+		`--enable-features=NetworkService,NetworkServiceInProcess`,
+		"--enable-features=NetworkService",
+		`--disable-default-apps`,
+		`--disable-notifications`,
+		`--disable-webgl`,
+		`--disable-blink-features=AutomationControlled`,
+		"--ignore-certificate-errors",
+		"--ignore-certificate-errors-spki-list",
+		"--disable-web-security",
+	}
+
+	if verifyTLS {
+		args = slices.DeleteFunc(args, func(a string) bool {
+			return a == "--ignore-certificate-errors" || a == "--ignore-certificate-errors-spki-list"
+		})
+	}
+
+	if disableImages {
+		args = append(args, `--blink-settings=imagesEnabled=false`)
+	}
+
+	return args
+}
+
+func newBrowser(pw *playwright.Playwright, headless, disableImages bool, proxyPool *ProxyPool, ua string, verifyTLS bool) (*browser, error) {
 	opts := playwright.BrowserTypeLaunchOptions{
 		Headless: playwright.Bool(headless),
-		Args: []string{
-			`--start-maximized`,
-			`--no-default-browser-check`,
-			`--disable-dev-shm-usage`,
-			`--no-sandbox`,
-			`--disable-setuid-sandbox`,
-			`--no-zygote`,
-			`--disable-gpu`,
-			`--mute-audio`,
-			`--disable-extensions`,
-			`--single-process`,
-			`--disable-breakpad`,
-			`--disable-features=TranslateUI,BlinkGenPropertyTrees`,
-			`--disable-ipc-flooding-protection`,
-			`--enable-features=NetworkService,NetworkServiceInProcess`,
-			"--enable-features=NetworkService",
-			`--disable-default-apps`,
-			`--disable-notifications`,
-			`--disable-webgl`,
-			`--disable-blink-features=AutomationControlled`,
-			"--ignore-certificate-errors",
-			"--ignore-certificate-errors-spki-list",
-			"--disable-web-security",
-		},
-	}
-	if disableImages {
-		opts.Args = append(opts.Args, `--blink-settings=imagesEnabled=false`)
+		Args:     chromiumArgs(disableImages, verifyTLS),
 	}
 
 	br, err := pw.Chromium.Launch(opts)

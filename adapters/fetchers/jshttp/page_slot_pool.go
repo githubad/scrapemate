@@ -115,10 +115,11 @@ type playwrightSlotFactory struct {
 	disableImages bool
 	proxyPool     *ProxyPool
 	ua            string
+	verifyTLS     bool
 }
 
 func (f playwrightSlotFactory) newSlot() (*pageSlot, error) {
-	b, err := newBrowser(f.pw, f.headless, f.disableImages, f.proxyPool, f.ua)
+	b, err := newBrowser(f.pw, f.headless, f.disableImages, f.proxyPool, f.ua, f.verifyTLS)
 	if err != nil {
 		return nil, err
 	}
