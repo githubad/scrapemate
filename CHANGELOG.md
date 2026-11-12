@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- GMX fork (`gmx` branch, see `GMX-PATCHES.md`): optional server certificate
+  verification, off by default. `scrapemateapp.WithVerifyTLS(true)` makes the stealth
+  fetcher verify every connection against the system roots, the requested host name
+  and the dates (without azuretls's directly dialling pin manager, and without changing
+  the browser fingerprint), and makes the Chromium fetcher keep its certificate checks.
+  A failure is a typed `scrapemate.TLSVerifyError` (`IsTLSVerifyError`, `TLSVerifyClass`).
 - `RequestHookProvider` — optional capability interface for `BrowserPage`
   implementations that can intercept outgoing requests and responses. Consumers
   opt in via a type assertion (`if hook, ok := page.(scrapemate.RequestHookProvider); ok { ... }`),
